@@ -17,5 +17,4 @@ var player = new Clappr.Player({
     playback: [YoutubePlayback]
   }
 });
-}
 ```
