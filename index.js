@@ -5,13 +5,18 @@ class YoutubePlayback extends Playback {
   get name() { return 'youtube_playback' }
 
   get attributes() {
-    return { class: 'clappr-youtube-playback'}
+    return {
+      'data-youtube-playback': '',
+      class: 'clappr-youtube-playback',
+      id: this.cid
+    }
   }
 
   constructor(options) {
     super(options)
     this.options = options
     this.settings = { left: ['playpause'], default: ['seekbar'], right:['fullscreen','volume'] }
+    Clappr.Mediator.on(Clappr.Events.PLAYER_RESIZE, this.updateSize, this)
   }
 
   setupYoutubePlayer() {
@@ -45,7 +50,7 @@ class YoutubePlayback extends Playback {
       },
       events: {
         onReady: () => this.ready(),
-        onStateChange: (event) => this.stateChange(event)
+        onStateChange: (event) => this.stateChange(event),
       }
     })
   }
