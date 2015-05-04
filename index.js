@@ -81,9 +81,6 @@ class YoutubePlayback extends Playback {
       case YT.PlayerState.PLAYING:
         this.trigger(Clappr.Events.PLAYBACK_PLAY)
         break
-      case YT.PlayerState.PAUSED:
-      this.trigger(Clappr.Events.PLAYBACK_SETTINGSUPDATE)
-        break
       default: break
     }
   }
@@ -101,6 +98,7 @@ class YoutubePlayback extends Playback {
 
   pause() {
     clearInterval(this._timeupdateTimer)
+    this._timeupdateTimer = null
     this.player && this.player.pauseVideo()
   }
 
@@ -116,7 +114,7 @@ class YoutubePlayback extends Playback {
   }
 
   isPlaying() {
-    return this.player && this.player.getPlayerState() == YT.PlayerState.PLAYING
+    return this.player && this._timeupdateTimer && this.player.getPlayerState() == YT.PlayerState.PLAYING
   }
 
   isHighDefinitionInUse() {
