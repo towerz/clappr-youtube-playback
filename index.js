@@ -51,7 +51,8 @@ class YoutubePlayback extends Playback {
         enablejsapi: 1,
         iv_load_policy: 3,
         modestbranding: 1,
-        showinfo: 0
+        showinfo: 0,
+        html5: 1
       },
       events: {
         onReady: () => this.ready(),
