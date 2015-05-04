@@ -123,6 +123,14 @@ class YoutubePlayback extends Playback {
     return this.player && !!this.player.getPlaybackQuality().match(/^hd\d+/)
   }
 
+  getDuration() {
+    var duration = 0
+    if (this.player) {
+      duration = this.player.getDuration()
+    }
+    return duration
+  }
+
   render() {
     this.$el.html(JST[this.name]({id: `yt${this.cid}`}))
     var style = $('<style>').html(JST.CSS[this.name])
