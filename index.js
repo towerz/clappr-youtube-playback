@@ -55,6 +55,10 @@ class YoutubePlayback extends Playback {
     })
   }
 
+  updateSize() {
+    this.player && this.player.setSize(this.$el.width(), this.$el.height())
+  }
+
   ready() {
     console.log('ready')
     this._ready = true
