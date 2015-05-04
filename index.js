@@ -66,13 +66,11 @@ class YoutubePlayback extends Playback {
   }
 
   ready() {
-    console.log('ready')
     this._ready = true
     this.trigger(Clappr.Events.PLAYBACK_READY)
   }
 
   qualityChange(event) {
-    console.log("quality change", event)
     this.trigger(Clappr.Events.PLAYBACK_HIGHDEFINITIONUPDATE)
   }
 
