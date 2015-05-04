@@ -107,6 +107,10 @@ class YoutubePlayback extends Playback {
     this.player.seekTo(time)
   }
 
+  volume(value) {
+    this.player && this.player.setVolume(value)
+  }
+
   timeupdate() {
     this.trigger(Clappr.Events.PLAYBACK_TIMEUPDATE, this.player.getCurrentTime(), this.player.getDuration())
   }
