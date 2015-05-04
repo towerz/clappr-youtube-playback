@@ -15,7 +15,12 @@ class YoutubePlayback extends Playback {
   constructor(options) {
     super(options)
     this.options = options
-    this.settings = { left: ['playpause', 'position', 'duration'], default: ['seekbar'], right:['fullscreen','volume', 'hd-indicator'] }
+    this.settings = {
+      seekEnabled: true,
+      left: ['playpause', 'position', 'duration'],
+      default: ['seekbar'],
+      right:['fullscreen','volume', 'hd-indicator']
+    }
     Clappr.Mediator.on(Clappr.Events.PLAYER_RESIZE, this.updateSize, this)
   }
 
@@ -97,6 +102,13 @@ class YoutubePlayback extends Playback {
   pause() {
     clearInterval(this._timeupdateTimer)
     this.player && this.player.pauseVideo()
+  }
+
+  seek(position) {
+    if (!this.player) return
+    var duration = this.player.getDuration()
+    var time = position * duration / 100
+    this.player.seekTo(time)
   }
 
   timeupdate() {
