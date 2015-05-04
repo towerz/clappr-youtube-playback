@@ -15,7 +15,7 @@ class YoutubePlayback extends Playback {
   constructor(options) {
     super(options)
     this.options = options
-    this.settings = { left: ['playpause'], default: ['seekbar'], right:['fullscreen','volume'] }
+    this.settings = { left: ['playpause'], default: ['seekbar'], right:['fullscreen','volume', 'hd-indicator'] }
     Clappr.Mediator.on(Clappr.Events.PLAYER_RESIZE, this.updateSize, this)
   }
 
@@ -51,6 +51,7 @@ class YoutubePlayback extends Playback {
       events: {
         onReady: () => this.ready(),
         onStateChange: (event) => this.stateChange(event),
+        onPlaybackQualityChange: (event) => this.qualityChange(event)
       }
     })
   }
@@ -63,6 +64,11 @@ class YoutubePlayback extends Playback {
     console.log('ready')
     this._ready = true
     this.trigger(Clappr.Events.PLAYBACK_READY)
+  }
+
+  qualityChange(event) {
+    console.log("quality change", event)
+    this.trigger(Clappr.Events.PLAYBACK_HIGHDEFINITIONUPDATE)
   }
 
   stateChange(event) {
@@ -93,6 +99,10 @@ class YoutubePlayback extends Playback {
 
   isPlaying() {
     return this.player && this.player.getPlayerState() == YT.PlayerState.PLAYING
+  }
+
+  isHighDefinitionInUse() {
+    return this.player && !!this.player.getPlaybackQuality().match(/^hd\d+/)
   }
 
   render() {
