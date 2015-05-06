@@ -86,6 +86,7 @@ class YoutubePlayback extends Playback {
 
   play() {
     if (this._ready) {
+      this._progressTimer = this._progressTimer || setInterval(() => this.progress(), 100)
       this._timeupdateTimer = setInterval(() => this.timeupdate(), 100)
       this.player.playVideo()
       this.trigger(Clappr.Events.PLAYBACK_PLAY)
@@ -110,6 +111,11 @@ class YoutubePlayback extends Playback {
 
   volume(value) {
     this.player && this.player.setVolume(value)
+  }
+
+  progress() {
+    var buffered = this.player.getDuration() * this.player.getVideoLoadedFraction()
+    this.trigger(Clappr.Events.PLAYBACK_PROGRESS, 0, buffered, this.player.getDuration())
   }
 
   timeupdate() {
