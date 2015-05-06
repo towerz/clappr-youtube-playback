@@ -78,10 +78,15 @@ class YoutubePlayback extends Playback {
   stateChange(event) {
     switch (event.data) {
       case YT.PlayerState.PLAYING:
+        this.enableMediaControl()
         this.trigger(Clappr.Events.PLAYBACK_PLAY)
         break
       case YT.PlayerState.ENDED:
-        this.trigger(Clappr.Events.PLAYBACK_ENDED)
+        if (this.options.youtubeShowRelated) {
+          this.disableMediaControl()
+        } else {
+          this.trigger(Clappr.Events.PLAYBACK_ENDED)
+        }
         break
       default: break
     }
@@ -139,6 +144,16 @@ class YoutubePlayback extends Playback {
       duration = this.player.getDuration()
     }
     return duration
+  }
+
+  disableMediaControl() {
+    this.$el.css({'pointer-events': 'auto'})
+    this.trigger(Clappr.Events.PLAYBACK_MEDIACONTROL_DISABLE)
+  }
+
+  enableMediaControl() {
+    this.$el.css({'pointer-events': 'none'})
+    this.trigger(Clappr.Events.PLAYBACK_MEDIACONTROL_ENABLE)
   }
 
   render() {
