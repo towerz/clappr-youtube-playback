@@ -80,6 +80,9 @@ class YoutubePlayback extends Playback {
       case YT.PlayerState.PLAYING:
         this.trigger(Clappr.Events.PLAYBACK_PLAY)
         break
+      case YT.PlayerState.ENDED:
+        this.trigger(Clappr.Events.PLAYBACK_ENDED)
+        break
       default: break
     }
   }
