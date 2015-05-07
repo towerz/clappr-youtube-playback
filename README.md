@@ -1,5 +1,5 @@
 # clappr-youtube-playback
-Clappr plugin for playing youtube based videos
+Clappr plugin for playing YouTube based videos
 
 It uses the [YouTube iframe API](https://developers.google.com/youtube/iframe_api_reference) for managing the YouTube content.
 
@@ -18,3 +18,4 @@ var player = new Clappr.Player({
   }
 });
 ```
+You can try it [here](http://towerz.github.io/clappr-youtube-playback/).
