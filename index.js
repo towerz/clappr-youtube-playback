@@ -42,18 +42,23 @@ class YoutubePlayback extends Playback {
   }
 
   embedYoutubePlayer() {
+    var playerVars = {
+      controls: 0,
+      autoplay: 0,
+      disablekb: 1,
+      enablejsapi: 1,
+      iv_load_policy: 3,
+      modestbranding: 1,
+      showinfo: 0,
+      html5: 1
+    }
+    if (this.options.youtubePlaylist) {
+      playerVars.listType = 'playlist'
+      playerVars.list = this.options.youtubePlaylist
+    }
     this.player = new YT.Player(`yt${this.cid}`, {
       videoId: this.options.src,
-      playerVars: {
-        controls: 0,
-        autoplay: 0,
-        disablekb: 1,
-        enablejsapi: 1,
-        iv_load_policy: 3,
-        modestbranding: 1,
-        showinfo: 0,
-        html5: 1
-      },
+      playerVars: playerVars,
       events: {
         onReady: () => this.ready(),
         onStateChange: (event) => this.stateChange(event),
