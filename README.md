@@ -19,3 +19,18 @@ var player = new Clappr.Player({
 });
 ```
 You can try it [here](http://towerz.github.io/clappr-youtube-playback/).
+
+### Playlist support
+
+Although using an array of video ids to create a dynamic playlist is still not supported, the plugin has support for YouTube lists. Just omit the parameter `source` or `sources` and add `youtubePlaylist` instead, like the example:
+```javascript
+var player = new Clappr.Player({
+  poster: 'https://i.ytimg.com/vi/nfWlot6h_JM/hqdefault.jpg',
+  parentId: '#player-wrapper',
+  youtubeShowRelated: true,
+  youtubePlaylist: 'PUANLZYMidaCbLQFWXBC95Jg',
+  plugins: {
+    playback: [YoutubePlayback]
+  }
+});
+```
