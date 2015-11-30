@@ -1,8 +1,12 @@
-var Playback = require('playback')
-var JST = require('./jst')
+import {Playback, Styler, template} from 'Clappr'
+
+import playbackStyle from './public/style.css'
+import playbackHtml from './public/youtube.html'
 
 class YoutubePlayback extends Playback {
   get name() { return 'youtube_playback' }
+
+  get template() { return template(playbackHtml) }
 
   get attributes() {
     return {
@@ -162,8 +166,8 @@ class YoutubePlayback extends Playback {
   }
 
   render() {
-    this.$el.html(JST[this.name]({id: `yt${this.cid}`}))
-    var style = $('<style>').html(JST.CSS[this.name])
+    this.$el.html(this.template({id: `yt${this.cid}`}))
+    var style = Styler.getStyleFor(playbackStyle, {baseUrl: this.options.baseUrl})
     this.$el.append(style)
     this.setupYoutubePlayer()
     return this;
