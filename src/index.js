@@ -81,7 +81,7 @@ class YoutubePlayback extends Playback {
   }
 
   qualityChange(event) {
-    this.trigger(Clappr.Events.PLAYBACK_HIGHDEFINITIONUPDATE)
+    this.trigger(Clappr.Events.PLAYBACK_HIGHDEFINITIONUPDATE, this.isHighDefinitionInUse())
   }
 
   stateChange(event) {
@@ -132,11 +132,11 @@ class YoutubePlayback extends Playback {
 
   progress() {
     var buffered = this.player.getDuration() * this.player.getVideoLoadedFraction()
-    this.trigger(Clappr.Events.PLAYBACK_PROGRESS, 0, buffered, this.player.getDuration())
+    this.trigger(Clappr.Events.PLAYBACK_PROGRESS, {start: 0, current: buffered, total: this.player.getDuration()})
   }
 
   timeupdate() {
-    this.trigger(Clappr.Events.PLAYBACK_TIMEUPDATE, this.player.getCurrentTime(), this.player.getDuration())
+    this.trigger(Clappr.Events.PLAYBACK_TIMEUPDATE, {current: this.player.getCurrentTime(), total: this.player.getDuration()})
   }
 
   isPlaying() {
