@@ -1,4 +1,4 @@
-import {Playback, Styler, template} from 'Clappr'
+import {Events, Playback, Styler, template} from 'Clappr'
 
 import playbackStyle from './public/style.css'
 import playbackHtml from './public/youtube.html'
@@ -24,35 +24,37 @@ class YoutubePlayback extends Playback {
     super(options)
     this.options = options
     this.settings = {
+      changeCount: 0,
       seekEnabled: true,
       left: ['playpause', 'position', 'duration'],
       default: ['seekbar'],
       right:['fullscreen','volume', 'hd-indicator']
     }
     Clappr.Mediator.on(Clappr.Events.PLAYER_RESIZE, this.updateSize, this)
+    this.embedYoutubeApiScript()
   }
 
   setupYoutubePlayer() {
     if (window.YT && window.YT.Player) {
       this.embedYoutubePlayer()
     } else {
-      this.embedYoutubeApiScript()
+      this.once(Clappr.Events.PLAYBACK_READY, () => this.embedYoutubePlayer())
     }
   }
 
   embedYoutubeApiScript() {
-      var script = document.createElement('script')
+      let script = document.createElement('script')
       script.setAttribute('type', 'text/javascript')
       script.setAttribute('async', 'async')
       script.setAttribute('src', 'https://www.youtube.com/iframe_api')
       document.body.appendChild(script)
-      window.onYouTubeIframeAPIReady = () => this.embedYoutubePlayer()
+      window.onYouTubeIframeAPIReady = () => this.ready()
   }
 
   embedYoutubePlayer() {
-    var playerVars = {
+    let playerVars = {
       controls: 0,
-      autoplay: 0,
+      autoplay: 1,
       disablekb: 1,
       enablejsapi: 1,
       iv_load_policy: 3,
@@ -81,24 +83,37 @@ class YoutubePlayback extends Playback {
 
   ready() {
     this._ready = true
-    this.trigger(Clappr.Events.PLAYBACK_READY)
+    this.trigger(Events.PLAYBACK_READY)
   }
 
   qualityChange(event) {
-    this.trigger(Clappr.Events.PLAYBACK_HIGHDEFINITIONUPDATE, this.isHighDefinitionInUse())
+    this.trigger(Events.PLAYBACK_HIGHDEFINITIONUPDATE, this.isHighDefinitionInUse())
   }
 
   stateChange(event) {
     switch (event.data) {
       case YT.PlayerState.PLAYING:
         this.enableMediaControl()
-        this.trigger(Clappr.Events.PLAYBACK_PLAY)
+        let playbackType = this.getPlaybackType()
+        if (this._playbackType !== playbackType) {
+          this.settings.changeCount++
+          this._playbackType = playbackType
+          this.trigger(Events.PLAYBACK_SETTINGSUPDATE)
+        }
+        this.trigger(Events.PLAYBACK_BUFFERFULL)
+        this.trigger(Events.PLAYBACK_PLAY)
+        break
+      case YT.PlayerState.PAUSED:
+        this.trigger(Events.PLAYBACK_PAUSE)
+        break
+      case YT.PlayerState.BUFFERING:
+        this.trigger(Events.PLAYBACK_BUFFERING)
         break
       case YT.PlayerState.ENDED:
         if (this.options.youtubeShowRelated) {
           this.disableMediaControl()
         } else {
-          this.trigger(Clappr.Events.PLAYBACK_ENDED)
+          this.trigger(Events.PLAYBACK_ENDED)
         }
         break
       default: break
@@ -106,13 +121,17 @@ class YoutubePlayback extends Playback {
   }
 
   play() {
-    if (this._ready) {
+    if (this.player) {
       this._progressTimer = this._progressTimer || setInterval(() => this.progress(), 100)
-      this._timeupdateTimer = setInterval(() => this.timeupdate(), 100)
+      this._timeupdateTimer = this._timeupdateTimer || setInterval(() => this.timeupdate(), 100)
       this.player.playVideo()
-      this.trigger(Clappr.Events.PLAYBACK_PLAY)
-      this.trigger(Clappr.Events.PLAYBACK_BUFFERFULL)
+    } else if (this._ready) {
+      this.trigger(Events.PLAYBACK_BUFFERING)
+      this._progressTimer = this._progressTimer || setInterval(() => this.progress(), 100)
+      this._timeupdateTimer = this._timeupdateTimer || setInterval(() => this.timeupdate(), 100)
+      this.setupYoutubePlayer()
     } else {
+      this.trigger(Events.PLAYBACK_BUFFERING)
       this.listenToOnce(this, Clappr.Events.PLAYBACK_READY, this.play)
     }
   }
@@ -136,20 +155,22 @@ class YoutubePlayback extends Playback {
   }
 
   volume(value) {
-    this.player && this.player.setVolume(value)
+    this.player && this.player.setVolume && this.player.setVolume(value)
   }
 
   progress() {
-    var buffered = this.player.getDuration() * this.player.getVideoLoadedFraction()
+    if (!this.player || !this.player.getDuration) return
+    let buffered = this.player.getDuration() * this.player.getVideoLoadedFraction()
     this.trigger(Clappr.Events.PLAYBACK_PROGRESS, {start: 0, current: buffered, total: this.player.getDuration()})
   }
 
   timeupdate() {
+    if (!this.player || !this.player.getDuration) return
     this.trigger(Clappr.Events.PLAYBACK_TIMEUPDATE, {current: this.player.getCurrentTime(), total: this.player.getDuration()})
   }
 
   isPlaying() {
-    return this.player && this._timeupdateTimer && this.player.getPlayerState() == YT.PlayerState.PLAYING
+    return this.player && this.player.getPlayerState() == YT.PlayerState.PLAYING
   }
 
   isHighDefinitionInUse() {
@@ -180,9 +201,8 @@ class YoutubePlayback extends Playback {
 
   render() {
     this.$el.html(this.template({id: `yt${this.cid}`}))
-    var style = Styler.getStyleFor(playbackStyle, {baseUrl: this.options.baseUrl})
+    let style = Styler.getStyleFor(playbackStyle, {baseUrl: this.options.baseUrl})
     this.$el.append(style)
-    this.setupYoutubePlayer()
     return this;
   }
 }
