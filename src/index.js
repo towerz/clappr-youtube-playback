@@ -16,6 +16,10 @@ class YoutubePlayback extends Playback {
     }
   }
 
+  get ended() { return false }
+  get buffering() { return this.player && this.player.getPlayerState() === YT.PlayerState.BUFFERING }
+  get isReady() { return this._ready }
+
   constructor(options) {
     super(options)
     this.options = options
@@ -119,11 +123,16 @@ class YoutubePlayback extends Playback {
     this.player && this.player.pauseVideo()
   }
 
-  seek(position) {
+  seek(time) {
     if (!this.player) return
-    var duration = this.player.getDuration()
-    var time = position * duration / 100
     this.player.seekTo(time)
+  }
+
+  seekPercentage(percentage) {
+    if (!this.player) return
+    let duration = this.player.getDuration()
+    let time = percentage * duration / 100
+    this.seekTo(time)
   }
 
   volume(value) {
@@ -148,11 +157,15 @@ class YoutubePlayback extends Playback {
   }
 
   getDuration() {
-    var duration = 0
+    let duration = 0
     if (this.player) {
       duration = this.player.getDuration()
     }
     return duration
+  }
+
+  getPlaybackType() {
+    return Playback.VOD
   }
 
   disableMediaControl() {
