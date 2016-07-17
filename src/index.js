@@ -22,7 +22,6 @@ class YoutubePlayback extends Playback {
 
   constructor(options) {
     super(options)
-    this.options = options
     this.settings = {
       changeCount: 0,
       seekEnabled: true,
