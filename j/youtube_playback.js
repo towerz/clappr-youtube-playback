@@ -56,6 +56,10 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	'use strict';
 
+	Object.defineProperty(exports, '__esModule', {
+	  value: true
+	});
+
 	var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
 
 	var _get = function get(_x, _x2, _x3) { var _again = true; _function: while (_again) { var object = _x, property = _x2, receiver = _x3; _again = false; if (object === null) object = Function.prototype; var desc = Object.getOwnPropertyDescriptor(object, property); if (desc === undefined) { var parent = Object.getPrototypeOf(object); if (parent === null) { return undefined; } else { _x = parent; _x2 = property; _x3 = receiver; _again = true; desc = parent = undefined; continue _function; } } else if ('value' in desc) { return desc.value; } else { var getter = desc.get; if (getter === undefined) { return undefined; } return getter.call(receiver); } } };
@@ -98,35 +102,55 @@ return /******/ (function(modules) { // webpackBootstrap
 	        id: this.cid
 	      };
 	    }
+	  }, {
+	    key: 'ended',
+	    get: function get() {
+	      return false;
+	    }
+	  }, {
+	    key: 'buffering',
+	    get: function get() {
+	      return this.player && this.player.getPlayerState() === YT.PlayerState.BUFFERING;
+	    }
+	  }, {
+	    key: 'isReady',
+	    get: function get() {
+	      return this._ready;
+	    }
 	  }]);
 
 	  function YoutubePlayback(options) {
 	    _classCallCheck(this, YoutubePlayback);
 
 	    _get(Object.getPrototypeOf(YoutubePlayback.prototype), 'constructor', this).call(this, options);
-	    this.options = options;
 	    this.settings = {
+	      changeCount: 0,
 	      seekEnabled: true,
 	      left: ['playpause', 'position', 'duration'],
 	      'default': ['seekbar'],
 	      right: ['fullscreen', 'volume', 'hd-indicator']
 	    };
-	    Clappr.Mediator.on(Clappr.Events.PLAYER_RESIZE, this.updateSize, this);
+	    _Clappr.Mediator.on(_Clappr.Events.PLAYER_RESIZE, this.updateSize, this);
+	    this.embedYoutubeApiScript();
 	  }
 
 	  _createClass(YoutubePlayback, [{
 	    key: 'setupYoutubePlayer',
 	    value: function setupYoutubePlayer() {
+	      var _this = this;
+
 	      if (window.YT && window.YT.Player) {
 	        this.embedYoutubePlayer();
 	      } else {
-	        this.embedYoutubeApiScript();
+	        this.once(_Clappr.Events.PLAYBACK_READY, function () {
+	          return _this.embedYoutubePlayer();
+	        });
 	      }
 	    }
 	  }, {
 	    key: 'embedYoutubeApiScript',
 	    value: function embedYoutubeApiScript() {
-	      var _this = this;
+	      var _this2 = this;
 
 	      var script = document.createElement('script');
 	      script.setAttribute('type', 'text/javascript');
@@ -134,17 +158,17 @@ return /******/ (function(modules) { // webpackBootstrap
 	      script.setAttribute('src', 'https://www.youtube.com/iframe_api');
 	      document.body.appendChild(script);
 	      window.onYouTubeIframeAPIReady = function () {
-	        return _this.embedYoutubePlayer();
+	        return _this2.ready();
 	      };
 	    }
 	  }, {
 	    key: 'embedYoutubePlayer',
 	    value: function embedYoutubePlayer() {
-	      var _this2 = this;
+	      var _this3 = this;
 
 	      var playerVars = {
 	        controls: 0,
-	        autoplay: 0,
+	        autoplay: 1,
 	        disablekb: 1,
 	        enablejsapi: 1,
 	        iv_load_policy: 3,
@@ -161,13 +185,13 @@ return /******/ (function(modules) { // webpackBootstrap
 	        playerVars: playerVars,
 	        events: {
 	          onReady: function onReady() {
-	            return _this2.ready();
+	            return _this3.ready();
 	          },
 	          onStateChange: function onStateChange(event) {
-	            return _this2.stateChange(event);
+	            return _this3.stateChange(event);
 	          },
 	          onPlaybackQualityChange: function onPlaybackQualityChange(event) {
-	            return _this2.qualityChange(event);
+	            return _this3.qualityChange(event);
 	          }
 	        }
 	      });
@@ -181,26 +205,42 @@ return /******/ (function(modules) { // webpackBootstrap
 	    key: 'ready',
 	    value: function ready() {
 	      this._ready = true;
-	      this.trigger(Clappr.Events.PLAYBACK_READY);
+	      this.trigger(_Clappr.Events.PLAYBACK_READY);
 	    }
 	  }, {
 	    key: 'qualityChange',
 	    value: function qualityChange(event) {
-	      this.trigger(Clappr.Events.PLAYBACK_HIGHDEFINITIONUPDATE);
+	      // eslint-disable-line no-unused-vars
+	      this.trigger(_Clappr.Events.PLAYBACK_HIGHDEFINITIONUPDATE, this.isHighDefinitionInUse());
 	    }
 	  }, {
 	    key: 'stateChange',
 	    value: function stateChange(event) {
 	      switch (event.data) {
 	        case YT.PlayerState.PLAYING:
-	          this.enableMediaControl();
-	          this.trigger(Clappr.Events.PLAYBACK_PLAY);
+	          {
+	            this.enableMediaControl();
+	            var playbackType = this.getPlaybackType();
+	            if (this._playbackType !== playbackType) {
+	              this.settings.changeCount++;
+	              this._playbackType = playbackType;
+	              this.trigger(_Clappr.Events.PLAYBACK_SETTINGSUPDATE);
+	            }
+	            this.trigger(_Clappr.Events.PLAYBACK_BUFFERFULL);
+	            this.trigger(_Clappr.Events.PLAYBACK_PLAY);
+	            break;
+	          }
+	        case YT.PlayerState.PAUSED:
+	          this.trigger(_Clappr.Events.PLAYBACK_PAUSE);
+	          break;
+	        case YT.PlayerState.BUFFERING:
+	          this.trigger(_Clappr.Events.PLAYBACK_BUFFERING);
 	          break;
 	        case YT.PlayerState.ENDED:
 	          if (this.options.youtubeShowRelated) {
 	            this.disableMediaControl();
 	          } else {
-	            this.trigger(Clappr.Events.PLAYBACK_ENDED);
+	            this.trigger(_Clappr.Events.PLAYBACK_ENDED);
 	          }
 	          break;
 	        default:
@@ -210,20 +250,28 @@ return /******/ (function(modules) { // webpackBootstrap
 	  }, {
 	    key: 'play',
 	    value: function play() {
-	      var _this3 = this;
+	      var _this4 = this;
 
-	      if (this._ready) {
+	      if (this.player) {
 	        this._progressTimer = this._progressTimer || setInterval(function () {
-	          return _this3.progress();
+	          return _this4.progress();
 	        }, 100);
-	        this._timeupdateTimer = setInterval(function () {
-	          return _this3.timeupdate();
+	        this._timeupdateTimer = this._timeupdateTimer || setInterval(function () {
+	          return _this4.timeupdate();
 	        }, 100);
 	        this.player.playVideo();
-	        this.trigger(Clappr.Events.PLAYBACK_PLAY);
-	        this.trigger(Clappr.Events.PLAYBACK_BUFFERFULL);
+	      } else if (this._ready) {
+	        this.trigger(_Clappr.Events.PLAYBACK_BUFFERING);
+	        this._progressTimer = this._progressTimer || setInterval(function () {
+	          return _this4.progress();
+	        }, 100);
+	        this._timeupdateTimer = this._timeupdateTimer || setInterval(function () {
+	          return _this4.timeupdate();
+	        }, 100);
+	        this.setupYoutubePlayer();
 	      } else {
-	        this.listenToOnce(this, Clappr.Events.PLAYBACK_READY, this.play);
+	        this.trigger(_Clappr.Events.PLAYBACK_BUFFERING);
+	        this.listenToOnce(this, _Clappr.Events.PLAYBACK_READY, this.play);
 	      }
 	    }
 	  }, {
@@ -235,32 +283,40 @@ return /******/ (function(modules) { // webpackBootstrap
 	    }
 	  }, {
 	    key: 'seek',
-	    value: function seek(position) {
+	    value: function seek(time) {
+	      if (!this.player) return;
+	      this.player.seekTo(time);
+	    }
+	  }, {
+	    key: 'seekPercentage',
+	    value: function seekPercentage(percentage) {
 	      if (!this.player) return;
 	      var duration = this.player.getDuration();
-	      var time = position * duration / 100;
-	      this.player.seekTo(time);
+	      var time = percentage * duration / 100;
+	      this.seekTo(time);
 	    }
 	  }, {
 	    key: 'volume',
 	    value: function volume(value) {
-	      this.player && this.player.setVolume(value);
+	      this.player && this.player.setVolume && this.player.setVolume(value);
 	    }
 	  }, {
 	    key: 'progress',
 	    value: function progress() {
+	      if (!this.player || !this.player.getDuration) return;
 	      var buffered = this.player.getDuration() * this.player.getVideoLoadedFraction();
-	      this.trigger(Clappr.Events.PLAYBACK_PROGRESS, 0, buffered, this.player.getDuration());
+	      this.trigger(_Clappr.Events.PLAYBACK_PROGRESS, { start: 0, current: buffered, total: this.player.getDuration() });
 	    }
 	  }, {
 	    key: 'timeupdate',
 	    value: function timeupdate() {
-	      this.trigger(Clappr.Events.PLAYBACK_TIMEUPDATE, this.player.getCurrentTime(), this.player.getDuration());
+	      if (!this.player || !this.player.getDuration) return;
+	      this.trigger(_Clappr.Events.PLAYBACK_TIMEUPDATE, { current: this.player.getCurrentTime(), total: this.player.getDuration() });
 	    }
 	  }, {
 	    key: 'isPlaying',
 	    value: function isPlaying() {
-	      return this.player && this._timeupdateTimer && this.player.getPlayerState() == YT.PlayerState.PLAYING;
+	      return this.player && this.player.getPlayerState() == YT.PlayerState.PLAYING;
 	    }
 	  }, {
 	    key: 'isHighDefinitionInUse',
@@ -277,16 +333,21 @@ return /******/ (function(modules) { // webpackBootstrap
 	      return duration;
 	    }
 	  }, {
+	    key: 'getPlaybackType',
+	    value: function getPlaybackType() {
+	      return _Clappr.Playback.VOD;
+	    }
+	  }, {
 	    key: 'disableMediaControl',
 	    value: function disableMediaControl() {
 	      this.$el.css({ 'pointer-events': 'auto' });
-	      this.trigger(Clappr.Events.PLAYBACK_MEDIACONTROL_DISABLE);
+	      this.trigger(_Clappr.Events.PLAYBACK_MEDIACONTROL_DISABLE);
 	    }
 	  }, {
 	    key: 'enableMediaControl',
 	    value: function enableMediaControl() {
 	      this.$el.css({ 'pointer-events': 'none' });
-	      this.trigger(Clappr.Events.PLAYBACK_MEDIACONTROL_ENABLE);
+	      this.trigger(_Clappr.Events.PLAYBACK_MEDIACONTROL_ENABLE);
 	    }
 	  }, {
 	    key: 'render',
@@ -294,7 +355,6 @@ return /******/ (function(modules) { // webpackBootstrap
 	      this.$el.html(this.template({ id: 'yt' + this.cid }));
 	      var style = _Clappr.Styler.getStyleFor(_publicStyleCss2['default'], { baseUrl: this.options.baseUrl });
 	      this.$el.append(style);
-	      this.setupYoutubePlayer();
 	      return this;
 	    }
 	  }]);
@@ -302,11 +362,13 @@ return /******/ (function(modules) { // webpackBootstrap
 	  return YoutubePlayback;
 	})(_Clappr.Playback);
 
+	exports['default'] = YoutubePlayback;
+
 	YoutubePlayback.canPlay = function (source) {
+	  // eslint-disable-line no-unused-vars
 	  return true;
 	};
-
-	module.exports = window.YoutubePlayback = YoutubePlayback;
+	module.exports = exports['default'];
 
 /***/ },
 /* 1 */
