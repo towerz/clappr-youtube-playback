@@ -3,7 +3,7 @@ import {Events, Playback, Styler, template} from 'Clappr'
 import playbackStyle from './public/style.css'
 import playbackHtml from './public/youtube.html'
 
-class YoutubePlayback extends Playback {
+export default class YoutubePlayback extends Playback {
   get name() { return 'youtube_playback' }
 
   get template() { return template(playbackHtml) }
@@ -210,5 +210,3 @@ YoutubePlayback.canPlay = function(source) {
   return true;
 };
 
-
-module.exports = window.YoutubePlayback = YoutubePlayback;
