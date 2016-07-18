@@ -56,8 +56,8 @@ module.exports = {
   output: {
     path: path.resolve(__dirname, 'dist'),
     publicPath: '<%=baseUrl%>/',
-    filename: 'youtube_playback.js',
-    library: 'ClapprYoutubePlayback',
+    filename: 'clappr-youtube-playback.js',
+    library: 'YoutubePlayback',
     libraryTarget: 'umd'
   }
 }
