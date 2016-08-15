@@ -5,6 +5,9 @@ import playbackHtml from './public/youtube.html'
 
 const YT_URL_PARSER = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?)|(feature\=player_embedded&))\??v?=?([^#\&\?]*).*/
 
+// Flag to track if youtube api got loaded on to the DOM
+let apiLoaded = false
+
 export default class YoutubePlayback extends Playback {
   get name () { return 'youtube_playback' }
 
@@ -32,7 +35,13 @@ export default class YoutubePlayback extends Playback {
       right: ['fullscreen', 'volume', 'hd-indicator']
     }
     Mediator.on(Events.PLAYER_RESIZE, this.updateSize, this)
-    this.embedYoutubeApiScript()
+    // If the script tag is already loaded simply call ready
+    if (!apiLoaded) {
+      this.embedYoutubeApiScript()
+      apiLoaded = true
+    } else {
+      this.ready()
+    }
   }
 
   setupYoutubePlayer () {
@@ -61,6 +70,15 @@ export default class YoutubePlayback extends Playback {
     }
   }
 
+  findVideoQuality (url) {
+    let regVideoQuality = /[?&]vq=([^#\&\?]+)/
+    let match = url.match(regVideoQuality)
+    if(match !== null && match.length > 1) {
+      return match[1]
+    }
+    return 'auto'
+  }
+
   embedYoutubePlayer () {
     let playerVars = {
       controls: 0,
@@ -70,7 +88,14 @@ export default class YoutubePlayback extends Playback {
       iv_load_policy: 3,
       modestbranding: 1,
       showinfo: 0,
-      html5: 1
+      html5: 1,
+      playsinline: 1,
+      vq: this.options.videoQuality || this.findVideoQuality(this.options.src),
+      rel: this.options.youtubeShowRelated || 0
+    }
+    var isLocalProtocol = window.location.protocol === 'file:' || window.location.protocol === 'app:'
+    if (!isLocalProtocol) {
+      playerVars.origin = window.location.protocol + '//' + window.location.host
     }
     if (this.options.youtubePlaylist) {
       playerVars.listType = 'playlist'
