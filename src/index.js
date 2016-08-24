@@ -1,14 +1,19 @@
-import {Events, Playback, Mediator, Styler, template} from 'Clappr'
+import { Events, Playback, Mediator, Styler, template } from 'Clappr'
 
 import playbackStyle from './public/style.css'
 import playbackHtml from './public/youtube.html'
 
+const YT_URL_PARSER = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?)|(feature\=player_embedded&))\??v?=?([^#\&\?]*).*/
+
+// Flag to track if youtube api got loaded on to the DOM
+let apiLoaded = false
+
 export default class YoutubePlayback extends Playback {
-  get name() { return 'youtube_playback' }
+  get name () { return 'youtube_playback' }
 
-  get template() { return template(playbackHtml) }
+  get template () { return template(playbackHtml) }
 
-  get attributes() {
+  get attributes () {
     return {
       'data-youtube-playback': '',
       class: 'clappr-youtube-playback',
@@ -16,24 +21,30 @@ export default class YoutubePlayback extends Playback {
     }
   }
 
-  get ended() { return false }
-  get buffering() { return this.player && this.player.getPlayerState() === YT.PlayerState.BUFFERING }
-  get isReady() { return this._ready }
+  get ended () { return false }
+  get buffering () { return this.player && this.player.getPlayerState() === YT.PlayerState.BUFFERING }
+  get isReady () { return this._ready }
 
-  constructor(options) {
+  constructor (options) {
     super(options)
     this.settings = {
       changeCount: 0,
       seekEnabled: true,
       left: ['playpause', 'position', 'duration'],
       default: ['seekbar'],
-      right:['fullscreen','volume', 'hd-indicator']
+      right: ['fullscreen', 'volume', 'hd-indicator']
     }
     Mediator.on(Events.PLAYER_RESIZE, this.updateSize, this)
-    this.embedYoutubeApiScript()
+    // If the script tag is already loaded simply call ready
+    if (!apiLoaded) {
+      this.embedYoutubeApiScript()
+      apiLoaded = true
+    } else {
+      this.ready()
+    }
   }
 
-  setupYoutubePlayer() {
+  setupYoutubePlayer () {
     if (window.YT && window.YT.Player) {
       this.embedYoutubePlayer()
     } else {
@@ -41,7 +52,7 @@ export default class YoutubePlayback extends Playback {
     }
   }
 
-  embedYoutubeApiScript() {
+  embedYoutubeApiScript () {
     let script = document.createElement('script')
     script.setAttribute('type', 'text/javascript')
     script.setAttribute('async', 'async')
@@ -50,7 +61,25 @@ export default class YoutubePlayback extends Playback {
     window.onYouTubeIframeAPIReady = () => this.ready()
   }
 
-  embedYoutubePlayer() {
+  findVideoId (url) {
+    let match_content = url.match(YT_URL_PARSER)
+    if (match_content && match_content[match_content.length - 1].length === 11) {
+      return match_content[match_content.length - 1]
+    } else {
+      return url
+    }
+  }
+
+  findVideoQuality (url) {
+    let regVideoQuality = /[?&]vq=([^#\&\?]+)/
+    let match = url.match(regVideoQuality)
+    if(match !== null && match.length > 1) {
+      return match[1]
+    }
+    return 'auto'
+  }
+
+  embedYoutubePlayer () {
     let playerVars = {
       controls: 0,
       autoplay: 1,
@@ -59,14 +88,21 @@ export default class YoutubePlayback extends Playback {
       iv_load_policy: 3,
       modestbranding: 1,
       showinfo: 0,
-      html5: 1
+      html5: 1,
+      playsinline: 1,
+      vq: this.options.videoQuality || this.findVideoQuality(this.options.src),
+      rel: this.options.youtubeShowRelated || 0
+    }
+    var isLocalProtocol = window.location.protocol === 'file:' || window.location.protocol === 'app:'
+    if (!isLocalProtocol) {
+      playerVars.origin = window.location.protocol + '//' + window.location.host
     }
     if (this.options.youtubePlaylist) {
       playerVars.listType = 'playlist'
       playerVars.list = this.options.youtubePlaylist
     }
     this.player = new YT.Player(`yt${this.cid}`, {
-      videoId: this.options.src,
+      videoId: this.findVideoId(this.options.src),
       playerVars: playerVars,
       events: {
         onReady: () => this.ready(),
@@ -76,51 +112,52 @@ export default class YoutubePlayback extends Playback {
     })
   }
 
-  updateSize() {
+  updateSize () {
     this.player && this.player.setSize(this.$el.width(), this.$el.height())
   }
 
-  ready() {
+  ready () {
     this._ready = true
     this.trigger(Events.PLAYBACK_READY)
   }
 
-  qualityChange(event) { // eslint-disable-line no-unused-vars
+  qualityChange (event) { // eslint-disable-line no-unused-vars
     this.trigger(Events.PLAYBACK_HIGHDEFINITIONUPDATE, this.isHighDefinitionInUse())
   }
 
-  stateChange(event) {
+  stateChange (event) {
     switch (event.data) {
-    case YT.PlayerState.PLAYING: {
-      this.enableMediaControl()
-      let playbackType = this.getPlaybackType()
-      if (this._playbackType !== playbackType) {
-        this.settings.changeCount++
-        this._playbackType = playbackType
-        this.trigger(Events.PLAYBACK_SETTINGSUPDATE)
+      case YT.PlayerState.PLAYING: {
+        this.enableMediaControl()
+        let playbackType = this.getPlaybackType()
+        if (this._playbackType !== playbackType) {
+          this.settings.changeCount++
+          this._playbackType = playbackType
+          this.trigger(Events.PLAYBACK_SETTINGSUPDATE)
+        }
+        this.trigger(Events.PLAYBACK_BUFFERFULL)
+        this.trigger(Events.PLAYBACK_PLAY)
+        break
       }
-      this.trigger(Events.PLAYBACK_BUFFERFULL)
-      this.trigger(Events.PLAYBACK_PLAY)
-      break
-    }
-    case YT.PlayerState.PAUSED:
-      this.trigger(Events.PLAYBACK_PAUSE)
-      break
-    case YT.PlayerState.BUFFERING:
-      this.trigger(Events.PLAYBACK_BUFFERING)
-      break
-    case YT.PlayerState.ENDED:
-      if (this.options.youtubeShowRelated) {
-        this.disableMediaControl()
-      } else {
-        this.trigger(Events.PLAYBACK_ENDED)
-      }
-      break
-    default: break
+      case YT.PlayerState.PAUSED:
+        this.trigger(Events.PLAYBACK_PAUSE)
+        break
+      case YT.PlayerState.BUFFERING:
+        this.trigger(Events.PLAYBACK_BUFFERING)
+        break
+      case YT.PlayerState.ENDED:
+        if (this.options.youtubeShowRelated) {
+          this.disableMediaControl()
+        } else {
+          this.trigger(Events.PLAYBACK_ENDED)
+        }
+        break
+      default:
+        break
     }
   }
 
-  play() {
+  play () {
     if (this.player) {
       this._progressTimer = this._progressTimer || setInterval(() => this.progress(), 100)
       this._timeupdateTimer = this._timeupdateTimer || setInterval(() => this.timeupdate(), 100)
@@ -136,48 +173,48 @@ export default class YoutubePlayback extends Playback {
     }
   }
 
-  pause() {
+  pause () {
     clearInterval(this._timeupdateTimer)
     this._timeupdateTimer = null
     this.player && this.player.pauseVideo()
   }
 
-  seek(time) {
+  seek (time) {
     if (!this.player) return
     this.player.seekTo(time)
   }
 
-  seekPercentage(percentage) {
+  seekPercentage (percentage) {
     if (!this.player) return
     let duration = this.player.getDuration()
     let time = percentage * duration / 100
     this.seekTo(time)
   }
 
-  volume(value) {
+  volume (value) {
     this.player && this.player.setVolume && this.player.setVolume(value)
   }
 
-  progress() {
+  progress () {
     if (!this.player || !this.player.getDuration) return
     let buffered = this.player.getDuration() * this.player.getVideoLoadedFraction()
     this.trigger(Events.PLAYBACK_PROGRESS, {start: 0, current: buffered, total: this.player.getDuration()})
   }
 
-  timeupdate() {
+  timeupdate () {
     if (!this.player || !this.player.getDuration) return
     this.trigger(Events.PLAYBACK_TIMEUPDATE, {current: this.player.getCurrentTime(), total: this.player.getDuration()})
   }
 
-  isPlaying() {
+  isPlaying () {
     return this.player && this.player.getPlayerState() == YT.PlayerState.PLAYING
   }
 
-  isHighDefinitionInUse() {
+  isHighDefinitionInUse () {
     return this.player && !!this.player.getPlaybackQuality().match(/^hd\d+/)
   }
 
-  getDuration() {
+  getDuration () {
     let duration = 0
     if (this.player) {
       duration = this.player.getDuration()
@@ -185,21 +222,21 @@ export default class YoutubePlayback extends Playback {
     return duration
   }
 
-  getPlaybackType() {
+  getPlaybackType () {
     return Playback.VOD
   }
 
-  disableMediaControl() {
+  disableMediaControl () {
     this.$el.css({'pointer-events': 'auto'})
     this.trigger(Events.PLAYBACK_MEDIACONTROL_DISABLE)
   }
 
-  enableMediaControl() {
+  enableMediaControl () {
     this.$el.css({'pointer-events': 'none'})
     this.trigger(Events.PLAYBACK_MEDIACONTROL_ENABLE)
   }
 
-  render() {
+  render () {
     this.$el.html(this.template({id: `yt${this.cid}`}))
     let style = Styler.getStyleFor(playbackStyle, {baseUrl: this.options.baseUrl})
     this.$el.append(style)
@@ -207,6 +244,6 @@ export default class YoutubePlayback extends Playback {
   }
 }
 
-YoutubePlayback.canPlay = function(source) { // eslint-disable-line no-unused-vars
-  return true
+YoutubePlayback.canPlay = function (source) { // eslint-disable-line no-unused-vars
+  return YT_URL_PARSER.test(source)
 }
