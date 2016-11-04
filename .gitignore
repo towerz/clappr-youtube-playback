@@ -25,6 +25,5 @@ node_modules
 
 # Clappr
 build
-dist
 jst.js
-/.idea
+.idea
