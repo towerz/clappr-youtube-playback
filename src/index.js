@@ -1,4 +1,4 @@
-import {Events, Playback, Mediator, Styler, template} from 'Clappr'
+import {Events, Playback, Mediator, Styler, template, $} from 'Clappr'
 
 import playbackStyle from './public/style.css'
 import playbackHtml from './public/youtube.html'
@@ -78,12 +78,13 @@ export default class YoutubePlayback extends Playback {
 
   updateSize() {
     this.player && this.player.setSize(this.$el.width(), this.$el.height())
-    console.log(this.player.getIframe())
-    //TODO: Iframe resizen
   }
 
   ready() {
     this._ready = true
+    $(window).resize(() => {
+      setTimeout(this.updateSize(), 500)
+    })
     this.trigger(Events.PLAYBACK_READY)
   }
 
