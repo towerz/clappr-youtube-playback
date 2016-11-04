@@ -78,6 +78,8 @@ export default class YoutubePlayback extends Playback {
 
   updateSize() {
     this.player && this.player.setSize(this.$el.width(), this.$el.height())
+    console.log(this.player.getIframe())
+    //TODO: Iframe resizen
   }
 
   ready() {
