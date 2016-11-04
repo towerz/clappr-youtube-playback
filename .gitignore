@@ -27,3 +27,4 @@ node_modules
 build
 dist
 jst.js
+/.idea
