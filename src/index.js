@@ -85,6 +85,7 @@ export default class YoutubePlayback extends Playback {
     $(window).resize(() => {
       setTimeout(this.updateSize(), 500)
     })
+    $(document).on('webkitfullscreenchange mozfullscreenchange fullscreenchange MSFullscreenChange', this.updateSize())
     this.trigger(Events.PLAYBACK_READY)
   }
 
