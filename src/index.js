@@ -77,7 +77,9 @@ export default class YoutubePlayback extends Playback {
   }
 
   updateSize() {
-    this.player && this.player.setSize(this.$el.width(), this.$el.height())
+    const width = (this.$el.width() === 0 ? this.options.width : this.$el.width())
+    const height = (this.$el.width() === 0 ? this.options.height : this.$el.height())
+    this.player && this.player.setSize(width, height)
   }
 
   ready() {
@@ -85,7 +87,9 @@ export default class YoutubePlayback extends Playback {
     $(window).resize(() => {
       setTimeout(this.updateSize(), 500)
     })
-    $(document).on('webkitfullscreenchange mozfullscreenchange fullscreenchange MSFullscreenChange', this.updateSize())
+    $(document).on('webkitfullscreenchange mozfullscreenchange fullscreenchange MSFullscreenChange',
+      setTimeout(this.updateSize(), 500)
+    )
     this.trigger(Events.PLAYBACK_READY)
   }
 
